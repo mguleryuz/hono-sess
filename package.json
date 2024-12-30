@@ -1,0 +1,97 @@
+{
+  "name": "hono-session",
+  "description": "A Simple Session Middleware for Hono",
+  "version": "0.0.0",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "default": "./dist/cjs/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "typings": "./dist/types/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "watch": "tsc -w",
+    "type-check": "tsc-files --pretty --project ./tsconfig.build.json --noEmit --module ESNext --declaration",
+    "build": "bun clean && bun build:cjs && bun build:esm && bun build:types",
+    "build:cjs": "tsc --project ./tsconfig.build.json --module commonjs --outDir ./dist/cjs --removeComments --verbatimModuleSyntax false && printf '{\"type\":\"commonjs\"}' > ./dist/cjs/package.json && tsc-alias --outDir ./dist/cjs && ts-add-js-extension --dir=dist/cjs --showchanges=false",
+    "build:esm": "tsc --project ./tsconfig.build.json --module ESNext --outDir ./dist/esm && printf '{\"type\": \"module\",\"sideEffects\":false}' > ./dist/esm/package.json && tsc-alias --outDir ./dist/esm && ts-add-js-extension --dir=dist/esm --showchanges=false",
+    "build:types": "tsc --project ./tsconfig.build.json --module ESNext --declarationDir ./dist/types --emitDeclarationOnly --declaration --declarationMap && tsc-alias --outDir ./dist/types",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo tsconfig.build.tsbuildinfo",
+    "postinstall": "husky || true",
+    "prepack": "pinst --disable",
+    "package": "bun run build && npm pack",
+    "postpack": "pinst --enable",
+    "release": "standard-version -a",
+    "release:alpha": "standard-version -a --prerelease alpha --skip.changelog",
+    "release:beta": "standard-version -a --prerelease beta --skip.changelog",
+    "release:pub": "git push --follow-tags origin main"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": [
+      "bun type-check",
+      "eslint --fix",
+      "prettier --write"
+    ]
+  },
+  "peerDependencies": {
+    "hono": "^4.6.0",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "cookie": "^1.0.2",
+    "depd": "^2.0.0"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^18.6.1",
+    "@commitlint/config-conventional": "^18.6.3",
+    "@types/bun": "^1.1.8",
+    "@types/depd": "^1.1.37",
+    "eslint-plugin-import-x": "^4.3.1",
+    "eslint-plugin-prettier": "^5.2.1",
+    "husky": "^9.1.5",
+    "lint-staged": "^15.2.10",
+    "pinst": "^3.0.0",
+    "prettier": "^3.3.3",
+    "standard-version": "^9.5.0",
+    "ts-add-js-extension": "^1.6.4",
+    "tsc-alias": "^1.8.10",
+    "tsc-files": "^1.1.4",
+    "typescript-eslint": "^8.6.0"
+  },
+  "license": "LGPL-3.0",
+  "homepage": "https://github.com/mguleryuz/hono-session",
+  "repository": "mguleryuz/hono-session",
+  "authors": [
+    "mguleryuz"
+  ],
+  "bugs": {
+    "url": "https://github.com/mguleryuz/hono-session"
+  },
+  "keywords": [
+    "hono",
+    "hono-session",
+    "hono-middleware",
+    "hono-session-middleware",
+    "hono-session-store",
+    "hono-session-cookie",
+    "hono-session-store-mongoose",
+    "hono-session-store-mongo",
+    "hono-session-store-redis",
+    "hono-session-store-file",
+    "hono-session-store-memory",
+    "hono-session-store-redis",
+    "hono-session-store-file"
+  ]
+}
