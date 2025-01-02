@@ -36,7 +36,7 @@ export interface RequestSessionExtender {
    *
    * @see SessionData
    */
-  session: Omit<Session, 'req' | '_id'> & SessionData
+  session: Session & SessionData
 
   /**
    * This request's session ID.

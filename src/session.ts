@@ -21,15 +21,7 @@ export class Session implements SessionData {
    * This allows you to alter the session cookie per visitor.
    * For example we can set `req.session.cookie.expires` to `false` to enable the cookie to remain for only the duration of the user-agent.
    */
-  #cookie!: Cookie
-
-  public get cookie(): Cookie {
-    return this.#cookie
-  }
-
-  public set cookie(cookie: Cookie) {
-    this.#cookie = cookie
-  }
+  cookie!: Cookie
 
   /**
    * Each session has a unique ID associated with it.
