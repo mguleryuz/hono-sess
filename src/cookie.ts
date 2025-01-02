@@ -2,34 +2,23 @@
  * Connect - session - Cookie
  * Copyright(c) 2010 Sencha Inc.
  * Copyright(c) 2011 TJ Holowaychuk
+ * Copyright(c) 2025 Mehmet Güleryüz
  * MIT Licensed
  */
 
 'use strict'
 
-/**
- * Module dependencies.
- */
-
+// Module dependencies.
 import cookie from 'cookie'
-import deprecate from 'depd'
-import type { CookieOptions } from 'hono/utils/cookie'
+import type { CookieOptions } from './types'
 
-const deprecateMaxAge = deprecate('hono-session')
-
-/**
- * Initialize a new `Cookie` with the given `options`.
- *
- * @param {Object} options
- * @api private
- */
-export class Cookie {
-  path: string = '/'
+export class Cookie implements CookieOptions {
+  path?: string
   private _expires: Date | null = null
   originalMaxAge: number | null = null
-  httpOnly: boolean = true
+  httpOnly?: boolean
   partitioned?: boolean
-  secure?: boolean
+  secure?: boolean | 'auto'
   domain?: string
   sameSite?: CookieOptions['sameSite']
   priority?: CookieOptions['priority']
@@ -48,71 +37,46 @@ export class Cookie {
       }
     }
 
-    this.originalMaxAge = this.originalMaxAge ?? this.maxAge
+    if (this.originalMaxAge === undefined || this.originalMaxAge === null) {
+      this.originalMaxAge = this.maxAge ?? null
+    }
   }
 
-  /**
-   * Set expires `date`.
-   *
-   * @param {Date} date
-   * @api public
-   */
+  get expires(): Date | null | undefined {
+    // Remove undefined from return type
+    return this._expires || undefined
+  }
+
   set expires(date: Date | null) {
+    // Remove undefined from parameter type
     this._expires = date
-    this.originalMaxAge = this.maxAge
+    this.originalMaxAge = this.maxAge ?? null
   }
 
-  /**
-   * Get expires `date`.
-   *
-   * @return {Date}
-   * @api public
-   */
-  get expires(): Date | null {
-    return this._expires
-  }
-
-  /**
-   * Set expires via max-age in `ms`.
-   *
-   * @param {Number} ms
-   * @api public
-   */
-  set maxAge(ms: number | Date | null) {
+  set maxAge(ms: number | undefined | Date) {
     if (ms && typeof ms !== 'number' && !(ms instanceof Date)) {
       throw new TypeError('maxAge must be a number or Date')
     }
 
     if (ms instanceof Date) {
-      deprecateMaxAge('maxAge as Date; pass number of milliseconds instead')
+      console.warn('maxAge as Date; pass number of milliseconds instead')
     }
 
-    this.expires = typeof ms === 'number' ? new Date(Date.now() + ms) : ms
+    this.expires = typeof ms === 'number' ? new Date(Date.now() + ms) : null
   }
 
-  /**
-   * Get expires max-age in `ms`.
-   *
-   * @return {Number}
-   * @api public
-   */
-  get maxAge(): number | null {
+  get maxAge(): number | undefined {
     return this.expires instanceof Date
       ? this.expires.valueOf() - Date.now()
-      : null
+      : undefined
   }
 
-  /**
-   * Return cookie data object.
-   *
-   * @return {Object}
-   * @api private
-   */
-  get data(): CookieOptions {
+  get data() {
     return {
+      originalMaxAge: this.originalMaxAge,
       partitioned: this.partitioned,
       expires: this._expires ?? undefined,
-      secure: this.secure,
+      secure: this.secure === 'auto' ? undefined : this.secure,
       httpOnly: this.httpOnly,
       domain: this.domain,
       path: this.path,
@@ -121,26 +85,10 @@ export class Cookie {
     }
   }
 
-  /**
-   * Return a serialized cookie string.
-   *
-   * @return {String}
-   * @api public
-   */
   serialize(name: string, val: string): string {
-    return cookie.serialize(name, val, {
-      ...this.data,
-      sameSite: this.sameSite?.toLowerCase() as 'strict' | 'lax' | 'none',
-      priority: this.priority?.toLowerCase() as 'low' | 'medium' | 'high',
-    })
+    return cookie.serialize(name, val, this.data)
   }
 
-  /**
-   * Return JSON representation of this cookie.
-   *
-   * @return {Object}
-   * @api private
-   */
   toJSON(): CookieOptions {
     return this.data
   }

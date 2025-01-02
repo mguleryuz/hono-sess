@@ -2,6 +2,7 @@
  * Connect - session - Store
  * Copyright(c) 2010 Sencha Inc.
  * Copyright(c) 2011 TJ Holowaychuk
+ * Copyright(c) 2025 Mehmet Güleryüz
  * MIT Licensed
  */
 
@@ -10,13 +11,13 @@
 import { EventEmitter } from 'events'
 import { Cookie } from './cookie'
 import { Session } from './session'
-import type { IncomingRequest, SessionData } from './types'
+import type { SessionData } from './types'
 
 /**
  * Abstract base class for session stores.
  * @public
  */
-export class Store extends EventEmitter {
+export abstract class Store extends EventEmitter {
   constructor() {
     super()
   }
@@ -24,72 +25,98 @@ export class Store extends EventEmitter {
   /**
    * Re-generate the given requests's session.
    *
-   * @param {IncomingRequest} req
-   * @param {Function} fn
-   * @api public
+   * @param {RequestSessionExtender} req
+   * @param {Function} callback
    */
-  regenerate(req: IncomingRequest, fn: (err?: any) => void): void {
-    this.destroy(req.sessionID, (err) => {
-      this.generate(req)
-      fn(err)
+  regenerate(req: any, callback: (err?: any) => void): void {
+    const self = this
+    this.destroy(req.sessionID!, (err) => {
+      // @ts-expect-error - generate is not a method of Store added during runtime
+      self.generate(req)
+      callback(err)
     })
   }
 
   /**
    * Load a `Session` instance via the given `sid`
-   * and invoke the callback `fn(err, sess)`.
-   *
-   * @param {String} sid
-   * @param {Function} fn
-   * @api public
+   * and invoke the callback `callback(err, session)`.
    */
-  load(sid: string, fn: (err: any, sess?: Session) => void): void {
-    this.get(sid, (err, sess) => {
-      if (err) return fn(err)
-      if (!sess) return fn(err)
-      const req = { sessionID: sid, sessionStore: this }
-      fn(null, this.createSession(req, sess))
+  load(sid: string, callback: (err: any, session?: SessionData) => any): void {
+    const self = this
+    this.get(sid, (err, session) => {
+      if (err) return callback(err)
+      if (!session) return callback('session not found') // Changed to match reference implementation order
+      const req = { sessionID: sid, sessionStore: self }
+      callback(null, this.createSession(req, session))
     })
   }
 
   /**
    * Create session from JSON `sess` data.
-   *
-   * @param {IncomingRequest} req
-   * @param {Object} sess
-   * @return {Session}
-   * @api private
    */
-  createSession(req: IncomingRequest, sess: SessionData): Session {
-    const expires = sess.cookie.expires
-    const originalMaxAge = sess.cookie.originalMaxAge
+  createSession(
+    req: any,
+    session: SessionData
+  ): Omit<Session, '_id' | 'req'> & SessionData {
+    const expires = session.cookie.expires
+    const originalMaxAge = session.cookie.originalMaxAge
 
-    sess.cookie = new Cookie(sess.cookie.data)
+    // Create new cookie first (matches reference implementation order)
+    session.cookie = new Cookie((session.cookie as Cookie).data)
 
     if (typeof expires === 'string') {
-      sess.cookie.expires = new Date(expires)
+      session.cookie.expires = new Date(expires)
     }
 
-    sess.cookie.originalMaxAge = originalMaxAge
+    session.cookie.originalMaxAge = originalMaxAge
 
-    req.session = new Session(req, sess)
+    // Create and assign session in one step
+    req.session = new Session(req, session)
     return req.session
   }
 
   // Abstract methods that should be implemented by subclasses
-  get(_sid: string, _fn: (err: any, sess?: SessionData) => void): void {
-    throw new Error('Not implemented')
-  }
 
-  destroy(_sid: string, _fn: (err?: any) => void): void {
-    throw new Error('Not implemented')
-  }
+  /**
+   * Gets the session from the store given a session ID and passes it to `callback`.
+   *
+   * The `session` argument should be a `Session` object if found, otherwise `null` or `undefined` if the session was not found and there was no error.
+   * A special case is made when `error.code === 'ENOENT'` to act like `callback(null, null)`.
+   */
+  abstract get(
+    sid: string,
+    callback: (err: any, session?: SessionData | null) => void
+  ): void
 
-  generate(_req: IncomingRequest): void {
-    throw new Error('Not implemented')
-  }
+  /** Upsert a session in the store given a session ID and `SessionData` */
+  abstract set(
+    sid: string,
+    session: SessionData,
+    callback?: (err?: any) => void
+  ): void
 
-  set(_sid: string, _session: SessionData, _fn: (err?: any) => void): void {
-    throw new Error('Not implemented')
-  }
+  /** Destroys the session with the given session ID. */
+  abstract destroy(sid: string, callback?: (err?: any) => void): void
+
+  /** Returns all sessions in the store */
+  // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/38783, https://github.com/expressjs/session/pull/700#issuecomment-540855551
+  abstract all?(
+    callback: (
+      err: any,
+      obj?: SessionData[] | { [sid: string]: SessionData } | null
+    ) => void
+  ): void
+
+  /** Returns the amount of sessions in the store. */
+  abstract length?(callback: (err: any, length?: number) => void): void
+
+  /** Delete all sessions from the store. */
+  abstract clear?(callback?: (err?: any) => void): void
+
+  /** "Touches" a given session, resetting the idle timer. */
+  abstract touch?(
+    sid: string,
+    session: SessionData,
+    callback?: (err?: any) => void
+  ): void
 }

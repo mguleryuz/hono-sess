@@ -2,87 +2,79 @@
  * Connect - session - Session
  * Copyright(c) 2010 Sencha Inc.
  * Copyright(c) 2011 TJ Holowaychuk
+ * Copyright(c) 2025 Mehmet Güleryüz
  * MIT Licensed
  */
 
 'use strict'
 
+// Module dependencies.
 import type { Cookie } from './cookie'
-import type { IncomingRequest, SessionData } from './types'
+import type { RequestSessionExtender, SessionData } from './types'
 
 export class Session implements SessionData {
   [key: string]: any
-  private readonly req!: IncomingRequest
-  public readonly id!: string
+  private req: RequestSessionExtender
+  private _id: string
+  /**
+   * Each session has a unique cookie object accompany it.
+   * This allows you to alter the session cookie per visitor.
+   * For example we can set `req.session.cookie.expires` to `false` to enable the cookie to remain for only the duration of the user-agent.
+   */
   public cookie!: Cookie
 
   /**
-   * Create a new `Session` with the given request and `data`.
-   *
-   * @param {IncomingRequest} req
-   * @param {Object} data
-   * @api private
+   * Each session has a unique ID associated with it.
+   * This property is an alias of `req.sessionID` and cannot be modified.
+   * It has been added to make the session ID accessible from the session object.
    */
-  constructor(req: IncomingRequest, data: SessionData | null) {
-    Object.defineProperty(this, 'req', { value: req })
-    Object.defineProperty(this, 'id', { value: req.sessionID })
+  public get id(): string {
+    return this._id
+  }
+
+  constructor(req: RequestSessionExtender, data: SessionData | null) {
+    this.req = req
+    this._id = req.sessionID
 
     if (typeof data === 'object' && data !== null) {
       // merge data into this, ignoring prototype properties
       for (const prop in data) {
         if (!(prop in this)) {
-          this[prop] = data[prop]
+          this[prop] = data[prop as keyof SessionData]
         }
       }
     }
   }
 
-  /**
-   * Update reset `.cookie.maxAge` to prevent
-   * the cookie from expiring when the
-   * session is still active.
-   *
-   * @return {Session} for chaining
-   * @api public
-   */
-  touch(): this {
+  /** Updates the `maxAge` property. Typically this is not necessary to call, as the session middleware does this for you. */
+  touch() {
     return this.resetMaxAge()
   }
 
   /**
-   * Reset `.maxAge` to `.originalMaxAge`.
-   *
-   * @return {Session} for chaining
-   * @api public
+   * Resets the cookie's `maxAge` to `originalMaxAge`
+   * @see Cookie
    */
-  resetMaxAge(): this {
-    this.cookie.maxAge = this.cookie.originalMaxAge
+  resetMaxAge() {
+    this.cookie.maxAge = this.cookie.originalMaxAge ?? undefined
     return this
   }
 
   /**
-   * Save the session data with optional callback `fn(err)`.
+   * Save the session back to the store, replacing the contents on the store with the contents in memory
+   *   (though a store may do something else - consult the store's documentation for exact behavior).
    *
-   * @param {Function} fn
-   * @return {Session} for chaining
-   * @api public
+   * This method is automatically called at the end of the HTTP response if the session data has been altered
+   *   (though this behavior can be altered with various options in the middleware constructor).
+   * Because of this, typically this method does not need to be called.
+   * There are some cases where it is useful to call this method, for example: redirects, long-lived requests or in WebSockets.
    */
-  save(fn?: (err?: any) => void): this {
-    this.req.sessionStore.set(this.id, this, fn || (() => {}))
+  save(fn?: (err?: any) => void) {
+    this.req.sessionStore.set(this._id, this, fn || (() => {}))
     return this
   }
 
-  /**
-   * Re-loads the session data _without_ altering
-   * the maxAge properties. Invokes the callback `fn(err)`,
-   * after which time if no exception has occurred the
-   * `req.session` property will be a new `Session` object,
-   * although representing the same session.
-   *
-   * @param {Function} fn
-   * @return {Session} for chaining
-   * @api public
-   */
+  /** Reloads the session data from the store and re-populates the `req.session` object. Once complete, the `callback` will be invoked. */
   reload(fn: (err?: any) => void): this {
     const req = this.req
     const store = this.req.sessionStore
@@ -96,26 +88,15 @@ export class Session implements SessionData {
     return this
   }
 
-  /**
-   * Destroy `this` session.
-   *
-   * @param {Function} fn
-   * @return {Session} for chaining
-   * @api public
-   */
+  /** Destroys the session and will unset the `req.session` property. Once complete, the `callback` will be invoked. */
   destroy(fn?: (err?: any) => void): this {
+    // @ts-expect-error - The operand of a 'delete' operator must be optional.ts(2790)
     delete this.req.session
     this.req.sessionStore.destroy(this.id, fn || (() => {}))
     return this
   }
 
-  /**
-   * Regenerate this request's session.
-   *
-   * @param {Function} fn
-   * @return {Session} for chaining
-   * @api public
-   */
+  /** To regenerate the session simply invoke the method. Once complete, a new SID and `Session` instance will be initialized at `req.session` and the `callback` will be invoked. */
   regenerate(fn: (err?: any) => void): this {
     this.req.sessionStore.regenerate(this.req, fn)
     return this

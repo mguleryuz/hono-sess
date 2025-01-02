@@ -8,8 +8,9 @@
 
 'use strict'
 
+import { Session } from './session'
 import { Store } from './store'
-import type { SessionData } from './types'
+import type { ExtendedHonoRequest, SessionData } from './types'
 
 const defer =
   typeof setImmediate === 'function'
@@ -18,15 +19,11 @@ const defer =
         process.nextTick(fn.bind.apply(fn, [null, ...Array.from(arguments)]))
       }
 
-interface MemoryStore {
-  sessions: { [key: string]: string }
-}
-
 /**
  * A session store in memory.
  * @public
  */
-class MemoryStore extends Store {
+export class MemoryStore extends Store {
   sessions: { [key: string]: string }
 
   constructor() {
@@ -34,12 +31,6 @@ class MemoryStore extends Store {
     this.sessions = Object.create(null)
   }
 
-  /**
-   * Get all active sessions.
-   *
-   * @param {function} callback
-   * @public
-   */
   all(
     callback?: (err: any, sessions: { [key: string]: SessionData }) => void
   ): void {
@@ -57,51 +48,24 @@ class MemoryStore extends Store {
     callback && defer(callback, null, sessions)
   }
 
-  /**
-   * Clear all sessions.
-   *
-   * @param {function} callback
-   * @public
-   */
   clear(callback?: (err?: any) => void): void {
     this.sessions = Object.create(null)
     callback && defer(callback)
   }
 
-  /**
-   * Destroy the session associated with the given session ID.
-   *
-   * @param {string} sessionId
-   * @public
-   */
-  override destroy(sessionId: string, callback?: (err?: any) => void): void {
+  destroy(sessionId: string, callback?: (err?: any) => void): void {
     delete this.sessions[sessionId]
     callback && defer(callback)
   }
 
-  /**
-   * Fetch session by the given session ID.
-   *
-   * @param {string} sessionId
-   * @param {function} callback
-   * @public
-   */
-  override get(
+  get(
     sessionId: string,
     callback: (err: any, session?: SessionData) => void
   ): void {
     defer(callback, null, getSession.call(this, sessionId))
   }
 
-  /**
-   * Commit the given session associated with the given sessionId to the store.
-   *
-   * @param {string} sessionId
-   * @param {object} session
-   * @param {function} callback
-   * @public
-   */
-  override set(
+  set(
     sessionId: string,
     session: SessionData,
     callback?: (err?: any) => void
@@ -110,12 +74,6 @@ class MemoryStore extends Store {
     callback && defer(callback)
   }
 
-  /**
-   * Get number of active sessions.
-   *
-   * @param {function} callback
-   * @public
-   */
   length(callback: (err: any, length?: number) => void): void {
     this.all((err, sessions) => {
       if (err) return callback(err)
@@ -123,14 +81,6 @@ class MemoryStore extends Store {
     })
   }
 
-  /**
-   * Touch the given session object associated with the given session ID.
-   *
-   * @param {string} sessionId
-   * @param {object} session
-   * @param {function} callback
-   * @public
-   */
   touch(
     sessionId: string,
     session: SessionData,
@@ -144,6 +94,11 @@ class MemoryStore extends Store {
     }
 
     callback && defer(callback)
+  }
+
+  generate(req: ExtendedHonoRequest): void {
+    const session = new Session(req, null)
+    req.session = session
   }
 }
 
@@ -179,5 +134,3 @@ function getSession(
 
   return parsed
 }
-
-export default MemoryStore
