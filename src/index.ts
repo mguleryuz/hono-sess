@@ -118,7 +118,7 @@ export function session({
     const c = context as ExtendedContext
 
     // Step 1: Self-awareness
-    if (c.get('session')) {
+    if (c.req.session as unknown) {
       return await next()
     }
 
@@ -142,6 +142,7 @@ export function session({
     }
 
     let secrets = secret as unknown as string[]
+
     let originalHash: string | null = null
     let originalId: string | null = null
     let savedHash: string | null = null
@@ -151,7 +152,6 @@ export function session({
     c.req.sessionStore = store as SessionStore
 
     // get the session ID from the cookie and set it to the request
-
     const signedCookie = <string>(
       ((await getSignedCookie(
         c,
@@ -162,45 +162,113 @@ export function session({
 
     let cookieId = (c.req.sessionID = signedCookie)
 
-    if (!c.req.session) {
-      debug('no session')
-      return await next()
-    }
+    // Handle Cookies
+    await (async () => {
+      if (!c.req.session) {
+        c.req.session
+        debug('no session')
+        return
+      }
 
-    if (!shouldSetCookie(c.req)) {
-      return await next()
-    }
+      if (!shouldSetCookie(c.req)) {
+        return
+      }
 
-    // only send secure cookies via https
-    if (c.req.session.cookie.secure && !issecure(c.req, proxy)) {
-      debug('not secured')
-      return await next()
-    }
+      // only send secure cookies via https
+      if (c.req.session.cookie.secure && !issecure(c.req, proxy)) {
+        debug('not secured')
+        return
+      }
 
-    if (!touched) {
-      // touch session
-      c.req.session.touch()
-      touched = true
-    }
+      if (!touched) {
+        // touch session
+        c.req.session.touch()
+        touched = true
+      }
 
-    const cookieData = (c.req.session.cookie as Cookie).data
+      // set cookie
+      try {
+        const cookieData = (c.req.session.cookie as Cookie).data
+        setSignedCookie(
+          c,
+          name,
+          c.req.sessionID,
+          new TextEncoder().encode(secrets.join(',')),
+          expressCookieOptionsToHonoCookieOptions(cookieData, c.req, proxy)
+        )
+      } catch (err) {
+        console.error(err)
+        return await next()
+      }
+    })()
 
-    // set cookie
-    try {
-      setSignedCookie(
-        c,
-        name,
-        c.req.sessionID,
-        new TextEncoder().encode(secrets.join(',')),
-        expressCookieOptionsToHonoCookieOptions(cookieData, c.req, proxy)
-      )
-    } catch (err) {
-      console.error(err)
-      return await next()
-    }
+    const getNext = () =>
+      next().then(async (nextResult) => {
+        // ===============================
+        // POST NEXT START
+        // ===============================
+
+        if (shouldDestroy(c.req)) {
+          // destroy session
+          debug('destroying')
+          await new Promise<void>((resolve, reject) => {
+            store.destroy(c.req.sessionID, (err) => {
+              if (err) reject(err)
+
+              debug('destroyed')
+              resolve()
+            })
+          })
+        }
+
+        // no session to save
+        if (!c.req.session) {
+          debug('no session at post next')
+          return nextResult
+        }
+
+        if (!touched) {
+          // touch session
+          c.req.session.touch()
+          touched = true
+        }
+
+        if (shouldSave(c.req)) {
+          await new Promise<void>((resolve, reject) => {
+            c.req.session.save((err: any) => {
+              if (err) {
+                reject(err)
+              }
+
+              resolve()
+            })
+          })
+        } else if (storeImplementsTouch && shouldTouch(c.req)) {
+          // store implements touch method
+          debug('touching')
+          await new Promise<void>((resolve, reject) => {
+            store.touch?.(c.req.sessionID, c.req.session, (err) => {
+              if (err) {
+                reject(err)
+              }
+
+              debug('touched')
+              resolve()
+            })
+          })
+          return nextResult
+        }
+
+        return nextResult
+      })
+
+    // ===============================
+    // UTILS START
+    // ===============================
 
     // generate the session
     function generate() {
+      debug('generating')
       // @ts-expect-error - generate is not a method of Store added during runtime
       store.generate(c.req)
       originalId = c.req.sessionID
@@ -210,6 +278,7 @@ export function session({
 
     // inflate the session
     function inflate(req: ExtendedHonoRequest, session: SessionData) {
+      debug('inflating')
       store.createSession(req, session)
       originalId = req.sessionID
       originalHash = hash(session)
@@ -222,6 +291,7 @@ export function session({
     }
 
     function rewrapmethods(session: SessionData, callback: () => void) {
+      debug('rewrapmethods')
       return function () {
         if (c.req.session !== session) {
           wrapmethods(c.req.session)
@@ -230,84 +300,6 @@ export function session({
         // @ts-expect-error - callback is not typed
         callback.apply(this, arguments)
       }
-    }
-
-    const nextResult = await next()
-
-    // Handle session cleanup after the route handler
-    try {
-      if (shouldDestroy(c.req)) {
-        // destroy session
-        debug('destroying')
-        await new Promise<void>((resolve, reject) => {
-          store.destroy(c.req.sessionID, (err) => {
-            if (err) {
-              reject(err)
-              return
-            }
-            debug('destroyed')
-            resolve()
-          })
-        })
-      } else if (c.req.session) {
-        if (!touched) {
-          // touch session
-          c.req.session.touch()
-          touched = true
-        }
-
-        if (shouldSave(c.req)) {
-          await new Promise<void>((resolve, reject) => {
-            c.req.session.save((err: any) => {
-              if (err) {
-                reject(err)
-                return
-              }
-              resolve()
-            })
-          })
-        } else if (storeImplementsTouch && shouldTouch(c.req)) {
-          // store implements touch method
-          debug('touching')
-          await new Promise<void>((resolve, reject) => {
-            store.touch!(c.req.sessionID, c.req.session, (err) => {
-              if (err) {
-                reject(err)
-                return
-              }
-              debug('touched')
-              resolve()
-            })
-          })
-        }
-      }
-
-      // Handle cookie setting
-      if (c.req.session && shouldSetCookie(c.req)) {
-        if (!c.req.session.cookie.secure || issecure(c.req, proxy)) {
-          if (!touched) {
-            c.req.session.touch()
-            touched = true
-          }
-
-          await setSignedCookie(
-            c,
-            name,
-            c.req.sessionID,
-            new TextEncoder().encode(secrets.join(',')),
-            expressCookieOptionsToHonoCookieOptions(
-              (c.req.session.cookie as Cookie).data,
-              c.req,
-              proxy
-            )
-          )
-        } else {
-          debug('not secured')
-        }
-      }
-    } catch (err) {
-      console.error('Session cleanup error:', err)
-      throw err
     }
 
     // wrap session methods
@@ -399,39 +391,40 @@ export function session({
             (req.session.cookie.expires != null && isModified(req.session))
     }
 
+    // ===============================
+    // PRE NEXT START
+    // ===============================
+
     // generate a session if the browser doesn't send a sessionID
     if (!c.req.sessionID) {
       debug('no SID sent, generating session')
       generate()
-      next()
-      return
+      return getNext()
     }
 
     // generate the session object
     debug('fetching %s', c.req.sessionID)
-    store.get(c.req.sessionID, function (err, sess) {
+    store.get(c.req.sessionID, (err, session) => {
       // error handling
       if (err && err.code !== 'ENOENT') {
         debug('error %j', err)
-        console.error(err)
-        next()
-        return
+        return getNext()
       }
 
       try {
-        if (err || !sess) {
+        if (err || !session) {
           debug('no session found')
           generate()
         } else {
           debug('session found')
-          inflate(c.req, sess)
+          inflate(c.req, session)
         }
       } catch (e) {
         console.error(e)
-        return nextResult
+        return getNext()
       }
 
-      return nextResult
+      return getNext()
     })
   }
 }

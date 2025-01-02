@@ -12,13 +12,6 @@ import { Session } from './session'
 import { Store } from './store'
 import type { ExtendedHonoRequest, SessionData } from './types'
 
-const defer =
-  typeof setImmediate === 'function'
-    ? setImmediate
-    : function (fn: Function) {
-        process.nextTick(fn.bind.apply(fn, [null, ...Array.from(arguments)]))
-      }
-
 /**
  * A session store in memory.
  * @public
@@ -45,24 +38,24 @@ export class MemoryStore extends Store {
       }
     }
 
-    callback && defer(callback, null, sessions)
+    callback && callback(null, sessions)
   }
 
   clear(callback?: (err?: any) => void): void {
     this.sessions = Object.create(null)
-    callback && defer(callback)
+    callback && callback()
   }
 
   destroy(sessionId: string, callback?: (err?: any) => void): void {
     delete this.sessions[sessionId]
-    callback && defer(callback)
+    callback && callback()
   }
 
   get(
     sessionId: string,
     callback: (err: any, session?: SessionData) => void
   ): void {
-    defer(callback, null, getSession.call(this, sessionId))
+    callback(null, getSession.call(this, sessionId))
   }
 
   set(
@@ -71,7 +64,7 @@ export class MemoryStore extends Store {
     callback?: (err?: any) => void
   ): void {
     this.sessions[sessionId] = JSON.stringify(session)
-    callback && defer(callback)
+    callback && callback()
   }
 
   length(callback: (err: any, length?: number) => void): void {
@@ -93,7 +86,7 @@ export class MemoryStore extends Store {
       this.sessions[sessionId] = JSON.stringify(currentSession)
     }
 
-    callback && defer(callback)
+    callback && callback()
   }
 
   generate(req: ExtendedHonoRequest): void {

@@ -28,11 +28,22 @@ export const warning =
  * Hash the given `session` object omitting changes to `.cookie`.
  */
 export function hash(session: SessionData): string {
+  // Create a WeakSet to track visited objects
+  const seen = new WeakSet()
+
   // serialize
-  var str = JSON.stringify(session, function (key, val) {
+  const str = JSON.stringify(session, function (key, val) {
     // ignore session.cookie property
     if (this === session && key === 'cookie') {
-      return
+      return undefined
+    }
+
+    // Handle circular references
+    if (typeof val === 'object' && val !== null) {
+      if (seen.has(val)) {
+        return '[Circular]'
+      }
+      seen.add(val)
     }
 
     return val

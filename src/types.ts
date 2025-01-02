@@ -56,10 +56,8 @@ export interface ExtendedHonoRequest
   extends HonoRequest,
     RequestSessionExtender {}
 
-export type ExtendedContext<
-  T extends ExtendedHonoRequest = ExtendedHonoRequest,
-> = Context & {
-  req: T
+export type ExtendedContext = Context & {
+  req: ExtendedHonoRequest
 }
 
 /**

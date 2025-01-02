@@ -14,14 +14,22 @@ import type { RequestSessionExtender, SessionData } from './types'
 
 export class Session implements SessionData {
   [key: string]: any
-  private req: RequestSessionExtender
-  private _id: string
+  #req: RequestSessionExtender
+  #_id: string
   /**
    * Each session has a unique cookie object accompany it.
    * This allows you to alter the session cookie per visitor.
    * For example we can set `req.session.cookie.expires` to `false` to enable the cookie to remain for only the duration of the user-agent.
    */
-  public cookie!: Cookie
+  #cookie!: Cookie
+
+  public get cookie(): Cookie {
+    return this.#cookie
+  }
+
+  public set cookie(cookie: Cookie) {
+    this.#cookie = cookie
+  }
 
   /**
    * Each session has a unique ID associated with it.
@@ -29,12 +37,12 @@ export class Session implements SessionData {
    * It has been added to make the session ID accessible from the session object.
    */
   public get id(): string {
-    return this._id
+    return this.#_id
   }
 
   constructor(req: RequestSessionExtender, data: SessionData | null) {
-    this.req = req
-    this._id = req.sessionID
+    this.#req = req
+    this.#_id = req.sessionID
 
     if (typeof data === 'object' && data !== null) {
       // merge data into this, ignoring prototype properties
@@ -70,14 +78,14 @@ export class Session implements SessionData {
    * There are some cases where it is useful to call this method, for example: redirects, long-lived requests or in WebSockets.
    */
   save(fn?: (err?: any) => void) {
-    this.req.sessionStore.set(this._id, this, fn || (() => {}))
+    this.#req.sessionStore.set(this.id, this, fn || (() => {}))
     return this
   }
 
   /** Reloads the session data from the store and re-populates the `req.session` object. Once complete, the `callback` will be invoked. */
   reload(fn: (err?: any) => void): this {
-    const req = this.req
-    const store = this.req.sessionStore
+    const req = this.#req
+    const store = this.#req.sessionStore
 
     store.get(this.id, (err, sess) => {
       if (err) return fn(err)
@@ -91,14 +99,14 @@ export class Session implements SessionData {
   /** Destroys the session and will unset the `req.session` property. Once complete, the `callback` will be invoked. */
   destroy(fn?: (err?: any) => void): this {
     // @ts-expect-error - The operand of a 'delete' operator must be optional.ts(2790)
-    delete this.req.session
-    this.req.sessionStore.destroy(this.id, fn || (() => {}))
+    delete this.#req.session
+    this.#req.sessionStore.destroy(this.id, fn || (() => {}))
     return this
   }
 
   /** To regenerate the session simply invoke the method. Once complete, a new SID and `Session` instance will be initialized at `req.session` and the `callback` will be invoked. */
   regenerate(fn: (err?: any) => void): this {
-    this.req.sessionStore.regenerate(this.req, fn)
+    this.#req.sessionStore.regenerate(this.#req, fn)
     return this
   }
 }
