@@ -13,7 +13,7 @@ import cookie from 'cookie'
 import type { CookieOptions } from './types'
 
 export class Cookie implements CookieOptions {
-  path?: string
+  path?: string = '/'
   private _expires: Date | null = null
   originalMaxAge: number | null = null
   httpOnly?: boolean

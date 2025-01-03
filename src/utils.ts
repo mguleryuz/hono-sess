@@ -28,22 +28,11 @@ export const warning =
  * Hash the given `session` object omitting changes to `.cookie`.
  */
 export function hash(session: SessionData): string {
-  // Create a WeakSet to track visited objects
-  const seen = new WeakSet()
-
   // serialize
-  const str = JSON.stringify(session, function (key, val) {
+  var str = JSON.stringify(session, function (key, val) {
     // ignore session.cookie property
     if (this === session && key === 'cookie') {
-      return undefined
-    }
-
-    // Handle circular references
-    if (typeof val === 'object' && val !== null) {
-      if (seen.has(val)) {
-        return '[Circular]'
-      }
-      seen.add(val)
+      return
     }
 
     return val
@@ -86,7 +75,14 @@ export function expressCookieOptionsToHonoCookieOptions(
   const { priority, ...rest } = options
   return {
     ...rest,
-    sameSite: typeof options.sameSite === 'boolean' ? 'lax' : options.sameSite,
+    sameSite:
+      options.sameSite === true
+        ? 'strict'
+        : options.sameSite === false
+          ? 'lax'
+          : options.sameSite === 'none'
+            ? 'none'
+            : undefined,
     // TODO: fix this after hono@4.6.6
     // priority: options.priority
     //   ? ((options.priority.charAt(0).toUpperCase() +

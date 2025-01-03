@@ -28,12 +28,10 @@ import {
 } from './utils'
 
 // Type Imports
-import type { MiddlewareHandler } from 'hono'
 import type {
-  ExtendedContext,
   ExtendedHonoRequest,
   SessionData,
-  SessionOptions,
+  SessionMiddleware,
   SessionStore,
 } from './types'
 
@@ -44,7 +42,7 @@ let env = process.env.NODE_ENV
 export { Store, Cookie, Session, MemoryStore }
 export * from './types'
 
-export function session({
+const session: SessionMiddleware = ({
   cookie = {},
   genid = crypto.randomUUID,
   name = 'connect.sid',
@@ -55,7 +53,7 @@ export function session({
   saveUninitialized = true,
   secret = 'dev-secret' as unknown as string[],
   unset = 'keep',
-}: SessionOptions): MiddlewareHandler {
+}) => {
   if (typeof genid !== 'function')
     throw new TypeError('genid option must be a function')
 
@@ -96,6 +94,7 @@ export function session({
     req.sessionID = genid()
     req.session = new Session(req, null)
     req.session.cookie = new Cookie(cookie)
+    ;(req as any).raw.sessionID = req.sessionID
 
     if (cookie.secure === 'auto') {
       req.session.cookie.secure = issecure(req, proxy)
@@ -114,9 +113,7 @@ export function session({
     storeReady = true
   })
 
-  return async function session(context, next) {
-    const c = context as ExtendedContext
-
+  return async function session(c, next) {
     // Step 1: Self-awareness
     if (c.req.session as unknown) {
       return await next()
@@ -143,6 +140,7 @@ export function session({
 
     let secrets = secret as unknown as string[]
 
+    let cookieId: string | null = null
     let originalHash: string | null = null
     let originalId: string | null = null
     let savedHash: string | null = null
@@ -151,26 +149,22 @@ export function session({
     // expose store
     c.req.sessionStore = store as SessionStore
 
-    // get the session ID from the cookie and set it to the request
-    const signedCookie = <string>(
-      ((await getSignedCookie(
-        c,
-        new TextEncoder().encode(secrets.join(',')),
-        name
-      )) || undefined)
-    )
-
-    let cookieId = (c.req.sessionID = signedCookie)
-
     // Handle Cookies
-    await (async () => {
+    const handleCookies = async () => {
+      // get the session ID from the cookie and set it to the request
+      const signedCookie = <string>(
+        ((await getSignedCookie(c, secrets.join(' '), name)) || undefined)
+      )
+
+      cookieId = signedCookie
+
       if (!c.req.session) {
-        c.req.session
         debug('no session')
         return
       }
 
       if (!shouldSetCookie(c.req)) {
+        debug('should not set cookie')
         return
       }
 
@@ -184,23 +178,25 @@ export function session({
         // touch session
         c.req.session.touch()
         touched = true
+        debug('touched')
       }
 
       // set cookie
       try {
+        debug('setting cookie')
         const cookieData = (c.req.session.cookie as Cookie).data
-        setSignedCookie(
+
+        await setSignedCookie(
           c,
           name,
           c.req.sessionID,
-          new TextEncoder().encode(secrets.join(',')),
+          secrets.join(' '),
           expressCookieOptionsToHonoCookieOptions(cookieData, c.req, proxy)
         )
       } catch (err) {
         console.error(err)
-        return await next()
       }
-    })()
+    }
 
     const getNext = () =>
       next().then(async (nextResult) => {
@@ -258,6 +254,8 @@ export function session({
           })
           return nextResult
         }
+
+        handleCookies()
 
         return nextResult
       })
@@ -382,6 +380,7 @@ export function session({
     function shouldSetCookie(req: ExtendedHonoRequest) {
       // cannot set cookie without a session ID
       if (typeof req.sessionID !== 'string') {
+        debug('session ignored because of bogus req.sessionID %o')
         return false
       }
 
@@ -399,6 +398,7 @@ export function session({
     if (!c.req.sessionID) {
       debug('no SID sent, generating session')
       generate()
+      console.log('post generate sid', c.req.sessionID)
       return getNext()
     }
 
@@ -428,3 +428,5 @@ export function session({
     })
   }
 }
+
+export default session
