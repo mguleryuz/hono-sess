@@ -8,10 +8,15 @@
 
 'use strict'
 
+// Node.js built-in modules
 import { EventEmitter } from 'events'
-import { Cookie } from './cookie'
-import { Session } from './session'
-import type { SessionData } from './types'
+
+// Internal imports
+import { Cookie } from '@/cookie'
+import { Session } from '@/session'
+
+// Types
+import type { SessionData } from '@/types'
 
 /**
  * Abstract base class for session stores.

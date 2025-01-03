@@ -1,16 +1,20 @@
 /*!
- * express-session
+ * hono-sess
  * Copyright(c) 2010 Sencha Inc.
  * Copyright(c) 2011 TJ Holowaychuk
  * Copyright(c) 2015 Douglas Christopher Wilson
+ * Copyright(c) 2025 Mehmet Güleryüz
  * MIT Licensed
  */
 
 'use strict'
 
-import { Session } from './session'
-import { Store } from './store'
-import type { ExtendedHonoRequest, SessionData } from './types'
+// Internal imports
+import { Store } from '@/store'
+import { Session } from '@/session'
+
+// Types
+import type { ExtendedHonoRequest, SessionData } from '@/types'
 
 /**
  * A session store in memory.

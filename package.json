@@ -1,5 +1,5 @@
 {
-  "name": "hono-session",
+  "name": "hono-sess",
   "description": "A Simple Session Middleware for Hono",
   "version": "0.0.0",
   "exports": {
@@ -18,6 +18,10 @@
   "files": [
     "dist"
   ],
+  "directories": {
+    "tool": "tools",
+    "test": "tests"
+  },
   "publishConfig": {
     "access": "public"
   },
@@ -70,28 +74,28 @@
     "tsc-files": "^1.1.4",
     "typescript-eslint": "^8.6.0"
   },
-  "license": "LGPL-3.0",
-  "homepage": "https://github.com/mguleryuz/hono-session",
-  "repository": "mguleryuz/hono-session",
+  "license": "MIT",
+  "homepage": "https://github.com/mguleryuz/hono-sess",
+  "repository": "mguleryuz/hono-sess",
   "authors": [
     "mguleryuz"
   ],
   "bugs": {
-    "url": "https://github.com/mguleryuz/hono-session"
+    "url": "https://github.com/mguleryuz/hono-sess"
   },
   "keywords": [
     "hono",
-    "hono-session",
+    "hono-sess",
     "hono-middleware",
-    "hono-session-middleware",
-    "hono-session-store",
-    "hono-session-cookie",
-    "hono-session-store-mongoose",
-    "hono-session-store-mongo",
-    "hono-session-store-redis",
-    "hono-session-store-file",
-    "hono-session-store-memory",
-    "hono-session-store-redis",
-    "hono-session-store-file"
+    "hono-sess-middleware",
+    "hono-sess-store",
+    "hono-sess-cookie",
+    "hono-sess-store-mongoose",
+    "hono-sess-store-mongo",
+    "hono-sess-store-redis",
+    "hono-sess-store-file",
+    "hono-sess-store-memory",
+    "hono-sess-store-redis",
+    "hono-sess-store-file"
   ]
 }

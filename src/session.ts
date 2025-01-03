@@ -8,9 +8,11 @@
 
 'use strict'
 
-// Module dependencies.
-import type { Cookie } from './cookie'
-import type { RequestSessionExtender, SessionData } from './types'
+// Internal imports
+import { Cookie } from '@/cookie'
+
+// Types
+import type { RequestSessionExtender, SessionData } from '@/types'
 
 export class Session implements SessionData {
   [key: string]: any
@@ -35,6 +37,13 @@ export class Session implements SessionData {
   constructor(req: RequestSessionExtender, data: SessionData | null) {
     this.#req = req
     this.#_id = req.sessionID
+
+    // Initialize the cookie object first
+    if (req.session?.cookie) {
+      this.cookie = new Cookie(req.session.cookie)
+    } else {
+      this.cookie = new Cookie()
+    }
 
     if (typeof data === 'object' && data !== null) {
       // merge data into this, ignoring prototype properties

@@ -1,5 +1,5 @@
 /*!
- * hono-session
+ * hono-sess
  * Copyright(c) 2010 Sencha Inc.
  * Copyright(c) 2011 TJ Holowaychuk
  * Copyright(c) 2014-2015 Douglas Christopher Wilson
@@ -14,10 +14,10 @@ import { getSignedCookie, setSignedCookie } from 'hono/cookie'
 import crypto from 'crypto'
 
 // Internal Imports
-import { Cookie } from './cookie'
-import { MemoryStore } from './memory'
-import { Session } from './session'
-import { Store } from './store'
+import { Cookie } from '@/cookie'
+import { MemoryStore } from '@/memory'
+import { Session } from '@/session'
+import { Store } from '@/store'
 import {
   issecure,
   warning,
@@ -25,15 +25,17 @@ import {
   deprecate,
   hash,
   expressCookieOptionsToHonoCookieOptions,
-} from './utils'
+} from '@/utils'
 
 // Type Imports
 import type {
+  ExtendedContext,
   ExtendedHonoRequest,
   SessionData,
   SessionMiddleware,
   SessionStore,
-} from './types'
+} from '@/types'
+import type { Context } from 'hono'
 
 // environment
 let env = process.env.NODE_ENV
@@ -113,7 +115,9 @@ const session: SessionMiddleware = ({
     storeReady = true
   })
 
-  return async function session(c, next) {
+  return async function session(context: Context, next) {
+    const c = context as ExtendedContext
+
     // Step 1: Self-awareness
     if (c.req.session as unknown) {
       return await next()

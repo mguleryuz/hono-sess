@@ -8,9 +8,11 @@
 
 'use strict'
 
-// Module dependencies.
+// Third-party dependencies
 import cookie from 'cookie'
-import type { CookieOptions } from './types'
+
+// Types
+import type { CookieOptions } from '@/types'
 
 export class Cookie implements CookieOptions {
   path?: string = '/'

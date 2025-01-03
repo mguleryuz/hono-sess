@@ -1,6 +1,19 @@
+/*!
+ * hono-sess
+ * Copyright(c) 2025 Mehmet Güleryüz
+ * MIT Licensed
+ */
+
+'use strict'
+
+// Node.js built-in modules
 import crypto from 'crypto'
+
+// Third-party dependencies
 import dbg from 'debug'
 import depd from 'depd'
+
+// Types
 import type { CookieOptions, SessionData } from '@/types'
 import type { CookieOptions as HonoCookieOptions } from 'hono/utils/cookie'
 import type { HonoRequest } from 'hono'
@@ -8,12 +21,12 @@ import type { HonoRequest } from 'hono'
 /**
  * Debugging
  */
-export const debug = dbg('hono-session')
+export const debug = dbg('hono-sess')
 
 /**
  * Deprecation
  */
-export const deprecate = depd('hono-session')
+export const deprecate = depd('hono-sess')
 
 /**
  * Warning message for `MemoryStore` usage in production.

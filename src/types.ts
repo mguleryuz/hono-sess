@@ -1,19 +1,70 @@
+// Node.js built-in modules
 import type { CipherKey } from 'crypto'
+
+// Third-party dependencies
 import type { Context, HonoRequest, Next } from 'hono'
+
+// Internal imports
 import type { Cookie } from './cookie'
 import type { Session } from './session'
 import type { Store } from './store'
 
+// --- Core Session Types ---
+export type SessionMiddleware = (
+  options: SessionOptions
+) => (c: Context, next: Next) => Promise<Response | void>
+
+export type SessionStore = Store & {
+  generate: (req: RequestSessionExtender) => void
+}
+
+// --- Request Extension Types ---
 /**
  * This interface allows you to declare additional properties on your session object using [declaration merging](https://www.typescriptlang.org/docs/handbook/declaration-merging.html).
  *
  * @example
- * declare module 'hono-session' {
- *     interface SessionData {
+ * import 'hono'
+ * import { RequestSessionExtender } from 'hono-sess'
+ *
+ * declare module 'hono' {
+ *     interface HonoRequest extends RequestSessionExtender<{
  *         views: number;
- *     }
+ *     }> {}
  * }
  */
+export interface RequestSessionExtender<T extends {} = {}> {
+  /**
+   * This request's `Session` object.
+   * Even though this property isn't marked as optional, it won't exist until you use the `hono-sess` middleware
+   * [Declaration merging](https://www.typescriptlang.org/docs/handbook/declaration-merging.html) can be used to add your own properties.
+   *
+   * @see RequestSessionExtender
+   */
+  session: Session & SessionData & T
+
+  /**
+   * This request's session ID.
+   * Even though this property isn't marked as optional, it won't exist until you use the `hono-sess` middleware
+   */
+  sessionID: string
+
+  /**
+   * The Store in use.
+   * Even though this property isn't marked as optional, it won't exist until you use the `hono-sess` middleware
+   * The function `generate` is added by hono-sess
+   */
+  sessionStore: SessionStore
+}
+
+export interface ExtendedHonoRequest<T extends {} = {}>
+  extends HonoRequest,
+    RequestSessionExtender<T> {}
+
+export type ExtendedContext<T extends {} = {}> = Context & {
+  req: ExtendedHonoRequest<T>
+}
+
+// --- Configuration Interfaces ---
 export interface SessionData {
   [key: string]: any
   cookie: Omit<
@@ -114,48 +165,6 @@ export interface CookieOptions {
    * - `strict` will set the `SameSite` attribute to `Strict` for strict same site enforcement.
    */
   sameSite?: boolean | 'lax' | 'strict' | 'none' | undefined
-}
-
-export type SessionStore = Store & {
-  generate: (req: RequestSessionExtender) => void
-}
-
-export type SessionMiddleware = (
-  options: SessionOptions
-) => (c: ExtendedContext, next: Next) => Promise<Response | void>
-
-export interface RequestSessionExtender {
-  [key: string]: unknown
-
-  /**
-   * This request's `Session` object.
-   * Even though this property isn't marked as optional, it won't exist until you use the `express-session` middleware
-   * [Declaration merging](https://www.typescriptlang.org/docs/handbook/declaration-merging.html) can be used to add your own properties.
-   *
-   * @see SessionData
-   */
-  session: Session & SessionData
-
-  /**
-   * This request's session ID.
-   * Even though this property isn't marked as optional, it won't exist until you use the `express-session` middleware
-   */
-  sessionID: string
-
-  /**
-   * The Store in use.
-   * Even though this property isn't marked as optional, it won't exist until you use the `express-session` middleware
-   * The function `generate` is added by express-session
-   */
-  sessionStore: SessionStore
-}
-
-export interface ExtendedHonoRequest
-  extends HonoRequest,
-    RequestSessionExtender {}
-
-export type ExtendedContext = Context & {
-  req: ExtendedHonoRequest
 }
 
 /**
