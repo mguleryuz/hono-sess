@@ -149,53 +149,14 @@ const session: SessionMiddleware = ({
     // expose store
     c.req.sessionStore = store as SessionStore
 
-    // Handle Cookies
-    const handleCookies = async () => {
-      // get the session ID from the cookie and set it to the request
-      const signedCookie = <string>(
-        ((await getSignedCookie(c, secrets.join(' '), name)) || undefined)
-      )
+    // get the session ID from the cookie and set it to the request
+    const signedCookie = <string>(
+      ((await getSignedCookie(c, secrets.join(' '), name)) || undefined)
+    )
 
-      cookieId = signedCookie
-
-      if (!c.req.session) {
-        debug('no session')
-        return
-      }
-
-      if (!shouldSetCookie(c.req)) {
-        debug('should not set cookie')
-        return
-      }
-
-      // only send secure cookies via https
-      if (c.req.session.cookie.secure && !issecure(c.req, proxy)) {
-        debug('not secured')
-        return
-      }
-
-      if (!touched) {
-        // touch session
-        c.req.session.touch()
-        touched = true
-        debug('touched')
-      }
-
-      // set cookie
-      try {
-        debug('setting cookie')
-        const cookieData = (c.req.session.cookie as Cookie).data
-
-        await setSignedCookie(
-          c,
-          name,
-          c.req.sessionID,
-          secrets.join(' '),
-          expressCookieOptionsToHonoCookieOptions(cookieData, c.req, proxy)
-        )
-      } catch (err) {
-        console.error(err)
-      }
+    cookieId = signedCookie
+    if (cookieId) {
+      c.req.sessionID = cookieId
     }
 
     const getNext = () =>
@@ -252,13 +213,57 @@ const session: SessionMiddleware = ({
               resolve()
             })
           })
-          return nextResult
         }
 
-        handleCookies()
+        await handleCookies()
 
         return nextResult
       })
+
+    // Handle Cookies
+    const handleCookies = async () => {
+      if (!c.req.session) {
+        debug('no session')
+        return
+      }
+
+      if (!shouldSetCookie(c.req)) {
+        debug('should not set cookie')
+        return
+      }
+
+      // only send secure cookies via https
+      if (c.req.session.cookie.secure && !issecure(c.req, proxy)) {
+        debug('not secured')
+        return
+      }
+
+      if (!touched) {
+        // touch session
+        c.req.session.touch()
+        touched = true
+        debug('touched')
+      }
+
+      // set cookie
+      try {
+        debug('setting cookie')
+        const cookieData = (c.req.session.cookie as Cookie).data
+
+        await setSignedCookie(
+          c,
+          name,
+          c.req.sessionID,
+          secrets.join(' '),
+          expressCookieOptionsToHonoCookieOptions(cookieData, c.req, proxy)
+        )
+
+        return
+      } catch (err) {
+        console.error(err)
+        return
+      }
+    }
 
     // ===============================
     // UTILS START
@@ -404,27 +409,31 @@ const session: SessionMiddleware = ({
 
     // generate the session object
     debug('fetching %s', c.req.sessionID)
-    store.get(c.req.sessionID, (err, session) => {
-      // error handling
-      if (err && err.code !== 'ENOENT') {
-        debug('error %j', err)
-        return getNext()
-      }
-
-      try {
-        if (err || !session) {
-          debug('no session found')
-          generate()
-        } else {
-          debug('session found')
-          inflate(c.req, session)
+    return new Promise((resolve) => {
+      store.get(c.req.sessionID, (err, session) => {
+        // error handling
+        if (err && err.code !== 'ENOENT') {
+          debug('error %j', err)
+          resolve(getNext())
+          return
         }
-      } catch (e) {
-        console.error(e)
-        return getNext()
-      }
 
-      return getNext()
+        try {
+          if (err || !session) {
+            debug('no session found')
+            generate()
+          } else {
+            debug('session found')
+            inflate(c.req, session)
+          }
+        } catch (e) {
+          console.error(e)
+          resolve(getNext())
+          return
+        }
+
+        resolve(getNext())
+      })
     })
   }
 }
