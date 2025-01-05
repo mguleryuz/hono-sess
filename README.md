@@ -3,6 +3,8 @@
 [![NPM Version][npm-version-image]][npm-url]
 [![NPM Downloads][npm-downloads-image]][node-url]
 [![Build Status][ci-image]][ci-url]
+[![License][license-image]][license-url]
+[![Follow on Twitter][twitter-image]][twitter-url]
 
 ## Installation
 
@@ -990,3 +992,7 @@ On Windows, use the corresponding command;
 [npm-downloads-image]: https://badgen.net/npm/dm/hono-sess
 [npm-url]: https://npmjs.org/package/hono-sess
 [npm-version-image]: https://badgen.net/npm/v/hono-sess
+[twitter-url]: https://twitter.com/mgguleryuz
+[twitter-image]: https://img.shields.io/twitter/follow/mgguleryuz.svg?label=follow+mgguleryuz
+[license-image]: https://img.shields.io/badge/License-LGPL%20v3-blue
+[license-url]: ./LICENSE
