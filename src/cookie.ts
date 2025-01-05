@@ -64,13 +64,26 @@ export class Cookie implements CookieOptions {
       console.warn('maxAge as Date; pass number of milliseconds instead')
     }
 
-    this.expires = typeof ms === 'number' ? new Date(Date.now() + ms) : null
+    if (typeof ms === 'number') {
+      this._expires = new Date(Date.now() + ms)
+      this.originalMaxAge = ms
+    } else {
+      this._expires = null
+      this.originalMaxAge = null
+    }
   }
 
   get maxAge(): number | undefined {
-    return this.expires instanceof Date
-      ? this.expires.valueOf() - Date.now()
-      : undefined
+    // If there's no expires date or originalMaxAge, return undefined
+    if (!this._expires || !this.originalMaxAge) {
+      return undefined
+    }
+
+    // Calculate remaining time
+    const remaining = this._expires.getTime() - Date.now()
+
+    // Return remaining time, but not less than 0
+    return Math.max(0, remaining)
   }
 
   get data() {
