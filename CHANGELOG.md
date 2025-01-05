@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.10.0](https://github.com/mguleryuz/hono-sess/compare/v0.9.1...v0.10.0) (2025-01-05)
+
+### Bug Fixes
+
+- missing express session types ([d815189](https://github.com/mguleryuz/hono-sess/commit/d8151896743003c9f4a121c296175d08b7ab14bd))
+
 ### [0.9.1](https://github.com/mguleryuz/hono-sess/compare/v0.9.0...v0.9.1) (2025-01-05)
 
 ## 0.9.0 (2025-01-03)
