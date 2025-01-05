@@ -407,7 +407,6 @@ const session: SessionMiddleware = ({
     if (!c.req.sessionID) {
       debug('no SID sent, generating session')
       generate()
-      console.log('post generate sid', c.req.sessionID)
       return getNext()
     }
 
