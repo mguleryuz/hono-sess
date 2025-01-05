@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.10.1](https://github.com/mguleryuz/hono-sess/compare/v0.10.0...v0.10.1) (2025-01-05)
+
+### Bug Fixes
+
+- max age discrepency between server and client ([a90b91f](https://github.com/mguleryuz/hono-sess/commit/a90b91ffb545ff572c318e5e5b3e22a9155a82ea))
+
 ## [0.10.0](https://github.com/mguleryuz/hono-sess/compare/v0.9.1...v0.10.0) (2025-01-05)
 
 ### Bug Fixes
