@@ -3,7 +3,6 @@
 [![NPM Version][npm-version-image]][npm-url]
 [![NPM Downloads][npm-downloads-image]][node-url]
 [![Build Status][ci-image]][ci-url]
-[![Test Coverage][coveralls-image]][coveralls-url]
 
 ## Installation
 
@@ -986,9 +985,7 @@ On Windows, use the corresponding command;
 [rfc-cutler-httpbis-partitioned-cookies]: https://tools.ietf.org/html/draft-cutler-httpbis-partitioned-cookies/
 [rfc-west-cookie-priority-00-4.1]: https://tools.ietf.org/html/draft-west-cookie-priority-00#section-4.1
 [ci-image]: https://badgen.net/github/checks/mguleryuz/hono-sess/main?label=ci
-[ci-url]: https://github.com/mguleryuz/hono-sess/actions?query=workflow%3Aci
-[coveralls-image]: https://badgen.net/coveralls/c/github/mguleryuz/hono-sess/main
-[coveralls-url]: https://coveralls.io/r/mguleryuz/hono-sess?branch=main
+[ci-url]: https://github.com/mguleryuz/hono-sess/actions/workflows/ci.yaml
 [node-url]: https://nodejs.org/en/download
 [npm-downloads-image]: https://badgen.net/npm/dm/hono-sess
 [npm-url]: https://npmjs.org/package/hono-sess

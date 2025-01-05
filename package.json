@@ -29,7 +29,7 @@
     "watch": "tsc -w",
     "type-check": "tsc-files --pretty --project ./tsconfig.build.json --noEmit --module ESNext --declaration",
     "build": "bun clean && bun build:cjs && bun build:esm && bun build:types",
-    "build:cjs": "tsc --project ./tsconfig.build.json --module commonjs --outDir ./dist/cjs --removeComments --verbatimModuleSyntax false && printf '{\"type\":\"commonjs\"}' > ./dist/cjs/package.json && tsc-alias --outDir ./dist/cjs && ts-add-js-extension --dir=dist/cjs --showchanges=false",
+    "build:cjs": "tsc --project ./tsconfig.build.json --module commonjs --moduleResolution node --outDir ./dist/cjs --removeComments --verbatimModuleSyntax false && printf '{\"type\":\"commonjs\"}' > ./dist/cjs/package.json && tsc-alias --outDir ./dist/cjs && ts-add-js-extension --dir=dist/cjs --showchanges=false",
     "build:esm": "tsc --project ./tsconfig.build.json --module ESNext --outDir ./dist/esm && printf '{\"type\": \"module\",\"sideEffects\":false}' > ./dist/esm/package.json && tsc-alias --outDir ./dist/esm && ts-add-js-extension --dir=dist/esm --showchanges=false",
     "build:types": "tsc --project ./tsconfig.build.json --module ESNext --declarationDir ./dist/types --emitDeclarationOnly --declaration --declarationMap && tsc-alias --outDir ./dist/types",
     "clean": "rm -rf dist tsconfig.tsbuildinfo tsconfig.build.tsbuildinfo",
@@ -40,18 +40,23 @@
     "release": "standard-version -a",
     "release:alpha": "standard-version -a --prerelease alpha --skip.changelog",
     "release:beta": "standard-version -a --prerelease beta --skip.changelog",
-    "release:pub": "git push --follow-tags origin main"
+    "release:pub": "git push --follow-tags origin $(git rev-parse --abbrev-ref HEAD)"
   },
   "lint-staged": {
-    "src/**/*.{ts,tsx}": [
-      "bun type-check",
+    "*.{ts,tsx}": [
+      "bun type-check"
+    ],
+    "*.{ts,tsx,js,jsx,mjs,cjs,json,md,css}": [
       "eslint --fix",
       "prettier --write"
     ]
   },
+  "resolutions": {
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2"
+  },
   "peerDependencies": {
-    "hono": ">=4.6.0 <=4.6.6",
-    "typescript": "^5.6.2"
+    "hono": ">=4.6.0 <=4.6.6"
   },
   "dependencies": {
     "cookie": "^1.0.2",
@@ -59,22 +64,22 @@
     "depd": "^2.0.0"
   },
   "devDependencies": {
-    "@commitlint/cli": "^18.6.1",
-    "@commitlint/config-conventional": "^18.6.3",
-    "@types/bun": "^1.1.8",
+    "@commitlint/cli": "^19.6.0",
+    "@commitlint/config-conventional": "^19.6.0",
+    "@types/bun": "^1.1.14",
     "@types/debug": "^4.1.12",
     "@types/depd": "^1.1.37",
     "eslint-plugin-import-x": "^4.3.1",
     "eslint-plugin-prettier": "^5.2.1",
-    "husky": "^9.1.5",
-    "lint-staged": "^15.2.10",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.3.0",
     "pinst": "^3.0.0",
-    "prettier": "^3.3.3",
+    "prettier": "^3.4.2",
     "standard-version": "^9.5.0",
     "ts-add-js-extension": "^1.6.4",
     "tsc-alias": "^1.8.10",
     "tsc-files": "^1.1.4",
-    "typescript-eslint": "^8.6.0"
+    "typescript-eslint": "^8.19.0"
   },
   "license": "MIT",
   "homepage": "https://github.com/mguleryuz/hono-sess",
@@ -88,16 +93,32 @@
   "keywords": [
     "hono",
     "hono-sess",
+    "hono-session",
     "hono-middleware",
-    "hono-sess-middleware",
-    "hono-sess-store",
-    "hono-sess-cookie",
-    "hono-sess-store-mongoose",
-    "hono-sess-store-mongo",
-    "hono-sess-store-redis",
-    "hono-sess-store-file",
-    "hono-sess-store-memory",
-    "hono-sess-store-redis",
-    "hono-sess-store-file"
+    "session",
+    "middleware",
+    "session-store",
+    "session-management",
+    "session-middleware",
+    "authentication",
+    "cookie-session",
+    "store",
+    "mongodb",
+    "mongoose",
+    "redis",
+    "postgresql",
+    "mysql",
+    "sqlite",
+    "dynamodb",
+    "firestore",
+    "memory-store",
+    "file-store",
+    "database",
+    "web",
+    "http",
+    "express-session",
+    "express-session-port",
+    "express-session-hono",
+    "connect-session"
   ]
 }
